@@ -2,12 +2,9 @@ package dev.sonnyjon.recipespringmongodb.services;
 
 import dev.sonnyjon.recipespringmongodb.converters.UnitOfMeasureConverter;
 import dev.sonnyjon.recipespringmongodb.dto.UnitOfMeasureDto;
-import dev.sonnyjon.recipespringmongodb.repositories.UnitOfMeasureRepository;
+import dev.sonnyjon.recipespringmongodb.repositories.reactifve.UnitOfMeasureReactiveRepository;
 import org.springframework.stereotype.Service;
-
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import reactor.core.publisher.Flux;
 
 /**
  * Created by Sonny on 7/12/2022.
@@ -15,20 +12,19 @@ import java.util.stream.StreamSupport;
 @Service
 public class UnitOfMeasureServiceImpl implements UnitOfMeasureService
 {
-    private final UnitOfMeasureRepository unitOfMeasureRepository;
+    private final UnitOfMeasureReactiveRepository unitOfMeasureReactiveRepository;
     private final UnitOfMeasureConverter converter = new UnitOfMeasureConverter();
 
-    public UnitOfMeasureServiceImpl(UnitOfMeasureRepository unitOfMeasureRepository)
+    public UnitOfMeasureServiceImpl(UnitOfMeasureReactiveRepository unitOfMeasureReactiveRepository)
     {
-        this.unitOfMeasureRepository = unitOfMeasureRepository;
+        this.unitOfMeasureReactiveRepository = unitOfMeasureReactiveRepository;
     }
 
     @Override
-    public Set<UnitOfMeasureDto> listAllUoms()
+    public Flux<UnitOfMeasureDto> listAllUoms()
     {
-        return StreamSupport
-                .stream(unitOfMeasureRepository.findAll().spliterator(), false)
-                .map(converter::convertEntity)
-                .collect(Collectors.toSet());
+        return unitOfMeasureReactiveRepository
+                .findAll()
+                .map(converter::convertEntity);
     }
 }

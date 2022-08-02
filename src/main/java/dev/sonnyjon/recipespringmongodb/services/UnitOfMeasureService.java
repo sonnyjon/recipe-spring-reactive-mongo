@@ -1,13 +1,12 @@
 package dev.sonnyjon.recipespringmongodb.services;
 
 import dev.sonnyjon.recipespringmongodb.dto.UnitOfMeasureDto;
-
-import java.util.Set;
+import reactor.core.publisher.Flux;
 
 /**
  * Created by Sonny on 7/9/2022.
  */
 public interface UnitOfMeasureService
 {
-    Set<UnitOfMeasureDto> listAllUoms();
+    Flux<UnitOfMeasureDto> listAllUoms();
 }

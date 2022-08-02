@@ -3,7 +3,7 @@ package dev.sonnyjon.recipespringmongodb.services;
 import dev.sonnyjon.recipespringmongodb.converters.UnitOfMeasureConverter;
 import dev.sonnyjon.recipespringmongodb.dto.UnitOfMeasureDto;
 import dev.sonnyjon.recipespringmongodb.model.UnitOfMeasure;
-import dev.sonnyjon.recipespringmongodb.repositories.UnitOfMeasureRepository;
+import dev.sonnyjon.recipespringmongodb.repositories.reactifve.UnitOfMeasureReactiveRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,13 +11,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 /**
  * Created by Sonny on 7/12/2022.
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 class UnitOfMeasureServiceImplTest
 {
     @Mock
-    UnitOfMeasureRepository unitOfMeasureRepository;
+    UnitOfMeasureReactiveRepository unitOfMeasureReactiveRepository;
 
     UnitOfMeasureService service;
     UnitOfMeasureConverter converter;
@@ -36,7 +36,7 @@ class UnitOfMeasureServiceImplTest
     void setUp()
     {
         mocks = MockitoAnnotations.openMocks(this);
-        service = new UnitOfMeasureServiceImpl(unitOfMeasureRepository);
+        service = new UnitOfMeasureServiceImpl( unitOfMeasureReactiveRepository );
         converter = new UnitOfMeasureConverter();
     }
 
@@ -47,29 +47,29 @@ class UnitOfMeasureServiceImplTest
     }
 
     @Test
-    void listAllUoms_should_ReturnAllUoms()
+    void givenReactiveRepo_whenListAllUoms_thenFindAllUoms()
     {
+        final String id1 = "UOM-1";
+        final String id2 = "UOM-2";
+
         // given
         List<UnitOfMeasure> uoms = new ArrayList<>();
         UnitOfMeasure uom1 = new UnitOfMeasure();
-        uom1.setId("UOM-1");
+        uom1.setId( id1 );
 
         UnitOfMeasure uom2 = new UnitOfMeasure();
-        uom2.setId("UOM-2");
-
-        UnitOfMeasure uom3 = new UnitOfMeasure();
-        uom3.setId("UOM-3");
+        uom2.setId( id2 );
 
         uoms.add(uom1);
         uoms.add(uom2);
-        uoms.add(uom3);
 
-        when(unitOfMeasureRepository.findAll()).thenReturn(uoms);
+        when(unitOfMeasureReactiveRepository.findAll()).thenReturn(Flux.just( uom1, uom2 ));
 
         // when
-        Set<UnitOfMeasureDto> actual = service.listAllUoms();
+        List<UnitOfMeasureDto> actual = service.listAllUoms().collectList().block();
 
         // then
-        assertEquals(3, actual.size());
+        assertEquals(2, actual.size());
+        verify(unitOfMeasureReactiveRepository, times(1)).findAll();
     }
 }
