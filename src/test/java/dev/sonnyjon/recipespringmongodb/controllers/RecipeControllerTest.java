@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Created by Sonny on 7/15/2022.
  */
 @ExtendWith(MockitoExtension.class)
-public class RecipeControllerIT
+public class RecipeControllerTest
 {
     @Mock
     RecipeService recipeService;

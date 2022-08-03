@@ -9,6 +9,7 @@ import dev.sonnyjon.recipespringmongodb.repositories.RecipeRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 
 /**
  * Created by Sonny on 7/19/2022.
@@ -26,15 +27,16 @@ public class IngredientServiceMongoImpl implements IngredientService
     }
 
     @Override
-    public IngredientDto findInRecipe(String recipeId, String ingredientId)
+    public Mono<IngredientDto> findInRecipe(String recipeId, String ingredientId)
     {
         Recipe recipe = findRecipe( recipeId );
-        return converter.convertEntity(findIngredientInRecipe( ingredientId, recipe ));
+        IngredientDto ingredientDto = converter.convertEntity(findIngredientInRecipe( ingredientId, recipe ));
+        return Mono.just( ingredientDto );
     }
 
     @Override
     @Transactional
-    public IngredientDto saveIngredient(String recipeId, IngredientDto dto)
+    public Mono<IngredientDto> saveIngredient(String recipeId, IngredientDto dto)
     {
         Recipe recipe = findRecipe( recipeId );
         Ingredient toBeSaved = converter.convertDto( dto );
@@ -52,18 +54,21 @@ public class IngredientServiceMongoImpl implements IngredientService
         }
 
         Recipe savedRecipe = recipeRepository.save( recipe );
-        return converter.convertEntity( findIngredientInRecipe(dto.getId(), savedRecipe) );
+        IngredientDto ingredientDto = converter.convertEntity( findIngredientInRecipe(dto.getId(), savedRecipe) );
+        return Mono.just( ingredientDto );
     }
 
     @Override
     @Transactional
-    public void removeIngredient(String recipeId, String ingredientId)
+    public Mono<Void> removeIngredient(String recipeId, String ingredientId)
     {
         Recipe recipe = findRecipe( recipeId );
         Ingredient ingredient = findIngredientInRecipe( ingredientId, recipe );
         recipe.getIngredients().remove( ingredient );
 
         recipeRepository.save( recipe );
+
+        return Mono.just("removeIngredient").then();
     }
 
     //==================================================================================================================

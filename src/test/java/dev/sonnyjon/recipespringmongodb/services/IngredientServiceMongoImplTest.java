@@ -60,18 +60,18 @@ class IngredientServiceMongoImplTest
     }
 
     @Test
-    void findInRecipe_shouldReturnDto_whenFound()
+    void givenBothIds_whenFindInRecipe_thenFindIngredient()
     {
         // given
         Recipe testRecipe = getTestRecipeWithTwoIngredients();
         Optional<Recipe> optional = Optional.of( testRecipe );
         Ingredient testIngredient = getTestIngredient( INGRED1_ID, INGRED1_DESC );
 
+        // when
         when(recipeRepository.findById(anyString())).thenReturn( optional );
 
-        // when
         IngredientDto expected = converter.convertEntity( testIngredient );
-        IngredientDto actual = ingredientService.findInRecipe( testRecipe.getId(), expected.getId() );
+        IngredientDto actual = ingredientService.findInRecipe( testRecipe.getId(), expected.getId() ).block();
 
         // then
         assertEquals( expected.getDescription(), actual.getDescription() );
@@ -82,24 +82,23 @@ class IngredientServiceMongoImplTest
     }
 
     @Test
-    void findInRecipe_shouldThrowException_whenRecipeNotFound()
+    void givenBadIds_whenFindInRecipe_thenThrowException()
     {
         // given
         Recipe testRecipe = getTestRecipeWithTwoIngredients();
         Ingredient testIngredient = getTestIngredient( INGRED1_ID, INGRED1_DESC );
         IngredientDto expected = converter.convertEntity( testIngredient );
 
-        when(recipeRepository.findByIngredientId(anyString())).thenThrow( NotFoundException.class );
-
         // when
-        Executable executable = () -> ingredientService.findInRecipe( testRecipe.getId(), expected.getId() );
+        when(recipeRepository.findByIngredientId(anyString())).thenThrow( NotFoundException.class );
+        Executable executable = () -> ingredientService.findInRecipe( testRecipe.getId(), expected.getId() ).block();
 
         // then
-        assertThrows(NotFoundException.class, executable);
+        assertThrows( NotFoundException.class, executable );
     }
 
     @Test
-    void saveIngredient_shouldAdd_NewIngredient()
+    void givenNewIngredient_whenSaveIngredient_thenAddIngredient()
     {
         // given
         Recipe testRecipe = getTestRecipeWithNoIngredient();
@@ -109,11 +108,11 @@ class IngredientServiceMongoImplTest
         Ingredient expectedIngredient = getTestIngredient( INGRED1_ID, INGRED1_DESC );
         IngredientDto testIngredient = converter.convertEntity( expectedIngredient );
 
+        // when
         when(recipeRepository.findById(anyString())).thenReturn( recipeOptional );
         when(recipeRepository.save(any())).thenReturn( expectedRecipe );
 
-        // when
-        IngredientDto actualDto = ingredientService.saveIngredient( testRecipe.getId(), testIngredient );
+        IngredientDto actualDto = ingredientService.saveIngredient( testRecipe.getId(), testIngredient ).block();
 
         // then
         assertNotNull( actualDto.getId() );
@@ -122,7 +121,7 @@ class IngredientServiceMongoImplTest
     }
 
     @Test
-    void saveIngredient_shouldUpdate_ExistingIngredient()
+    void givenExistingIngredient_whenSaveIngredient_thenUpdateIngredient()
     {
         // given
         Ingredient expectedIngredient = getTestIngredient( INGRED1_ID, "CHANGED" );
@@ -138,11 +137,11 @@ class IngredientServiceMongoImplTest
 
         IngredientDto testIngredient = converter.convertEntity( expectedIngredient );
 
+        // when
         when(recipeRepository.findById(anyString())).thenReturn( optional );
         when(recipeRepository.save(any())).thenReturn( expectedRecipe );
 
-        // when
-        IngredientDto actualDto = ingredientService.saveIngredient( testRecipe.getId(), testIngredient );
+        IngredientDto actualDto = ingredientService.saveIngredient( testRecipe.getId(), testIngredient ).block();
 
         // then
         assertEquals( expectedIngredient.getId(), actualDto.getId() );
@@ -152,7 +151,7 @@ class IngredientServiceMongoImplTest
     }
 
     @Test
-    void saveIngredient_shouldThrowException_whenRecipeNotFound()
+    void givenBadRecipe_whenSaveIngredient_thenThrowException()
     {
         // given
         Recipe testRecipe = getTestRecipeWithTwoIngredients();
@@ -162,7 +161,7 @@ class IngredientServiceMongoImplTest
         when(recipeRepository.findById(anyString())).thenThrow( NotFoundException.class );
 
         // when
-        Executable executable = () -> ingredientService.saveIngredient( testRecipe.getId(), testIngredient );
+        Executable executable = () -> ingredientService.saveIngredient( testRecipe.getId(), testIngredient ).block();
 
         // then
         assertThrows( NotFoundException.class, executable );
@@ -170,7 +169,7 @@ class IngredientServiceMongoImplTest
     }
 
     @Test
-    void removeIngredient_shouldRemoveIngredient_fromRecipe()
+    void givenBothIds_whenRemoveIngredient_thenRemoveAndDelete()
     {
         // given
         Recipe testRecipe = getTestRecipeWithTwoIngredients();
@@ -179,11 +178,11 @@ class IngredientServiceMongoImplTest
 
         Ingredient testIngredient = getTestIngredient( INGRED2_ID, INGRED2_DESC );
 
+        // when
         when(recipeRepository.findById(anyString())).thenReturn( optionalRecipe );
         when(recipeRepository.save(any())).thenReturn( expectedRecipe );
 
-        // when
-        ingredientService.removeIngredient( testRecipe.getId(), testIngredient.getId() );
+        ingredientService.removeIngredient( testRecipe.getId(), testIngredient.getId() ).block();
 
         // then
         verify(recipeRepository, times(1)).findById(anyString());
@@ -191,16 +190,16 @@ class IngredientServiceMongoImplTest
     }
 
     @Test
-    void removeIngredient_shouldThrowException_whenRecipeNotFound()
+    void givenBadRecipe_whenRemoveIngredient_thenThrowException()
     {
         // given
         Recipe testRecipe = getTestRecipeWithTwoIngredients();
         Ingredient testIngredient = getTestIngredient( INGRED1_ID, INGRED1_DESC );
 
-        when(recipeRepository.findByIngredientId(anyString())).thenThrow( NotFoundException.class );
-
         // when
-        Executable executable = () -> ingredientService.removeIngredient( testRecipe.getId(), testIngredient.getId() );
+        when(recipeRepository.findByIngredientId(anyString())).thenThrow( NotFoundException.class );
+        Executable executable = () -> ingredientService.removeIngredient( testRecipe.getId(), testIngredient.getId() )
+                                                        .block();
 
         // then
         assertThrows( NotFoundException.class, executable );

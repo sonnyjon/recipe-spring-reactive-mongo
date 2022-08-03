@@ -47,7 +47,7 @@ public class IngredientController
     {
         log.debug("Showing ingredients for ingredient id: " + id);
 
-        model.addAttribute("ingredient", ingredientService.findInRecipe(recipeId, id));
+        model.addAttribute("ingredient", ingredientService.findInRecipe(recipeId, id).block());
         return "recipe/ingredient/show";
     }
 
@@ -63,7 +63,7 @@ public class IngredientController
 
         model.addAttribute( "recipeId", recipeId );
         model.addAttribute( "ingredient", ingredientDto );
-        model.addAttribute( "uomList",  unitOfMeasureService.listAllUoms() );
+        model.addAttribute( "uomList",  unitOfMeasureService.listAllUoms().collectList().block() );
 
         return "recipe/ingredient/ingredientform";
     }
@@ -71,8 +71,8 @@ public class IngredientController
     @GetMapping("/recipe/{recipeId}/ingredient/{id}/update")
     public String updateRecipeIngredient(@PathVariable String recipeId, @PathVariable String id, Model model)
     {
-        model.addAttribute("ingredient", ingredientService.findInRecipe(recipeId, id));
-        model.addAttribute("uomList", unitOfMeasureService.listAllUoms());
+        model.addAttribute("ingredient", ingredientService.findInRecipe(recipeId, id).block());
+        model.addAttribute("uomList", unitOfMeasureService.listAllUoms().collectList().block());
 
         return "recipe/ingredient/ingredientform";
     }
@@ -80,7 +80,7 @@ public class IngredientController
     @PostMapping("/recipe/{recipeId}/ingredient")
     public String saveOrUpdate(@PathVariable String recipeId, @ModelAttribute IngredientDto ingredient)
     {
-        IngredientDto savedIngredient = ingredientService.saveIngredient(recipeId, ingredient);
+        IngredientDto savedIngredient = ingredientService.saveIngredient(recipeId, ingredient).block();
         log.debug("saved ingredient id:" + savedIngredient.getId());
 
         return String.format("redirect:/recipe/%1$s/ingredient/%2$s/show", recipeId, savedIngredient.getId());
@@ -90,7 +90,7 @@ public class IngredientController
     public String deleteIngredient(@PathVariable String recipeId, @PathVariable String id)
     {
         log.debug("deleting ingredient id:" + id);
-        ingredientService.removeIngredient(recipeId, id);
+        ingredientService.removeIngredient(recipeId, id).block();
 
         return String.format("redirect:/recipe/%s/ingredients", recipeId);
     }

@@ -1,19 +1,15 @@
 package dev.sonnyjon.recipespringmongodb.services;
 
-import dev.sonnyjon.recipespringmongodb.dto.IngredientDto;
 import dev.sonnyjon.recipespringmongodb.exceptions.NotFoundException;
 import dev.sonnyjon.recipespringmongodb.model.Ingredient;
 import dev.sonnyjon.recipespringmongodb.model.Recipe;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * Created by Sonny on 7/24/2022.
@@ -45,15 +41,15 @@ class IngredientServiceIT
                                     .orElseThrow(NotFoundException::new);
     }
 
-    @Test
-    void findByRecipe_shouldReturnDto_whenFound()
-    {
-        // when
-        IngredientDto ingredient = ingredientService.findInRecipe( testRecipe.getId(), testIngredient.getId() );
-
-        // then
-        assertNotNull( testRecipe );
-        assertNotNull( testRecipe.getIngredients() );
-        assertNotNull( ingredient );
-    }
+//    @Test
+//    void findByRecipe_shouldReturnDto_whenFound()
+//    {
+//        // when
+//        IngredientDto ingredient = ingredientService.findInRecipe( testRecipe.getId(), testIngredient.getId() );
+//
+//        // then
+//        assertNotNull( testRecipe );
+//        assertNotNull( testRecipe.getIngredients() );
+//        assertNotNull( ingredient );
+//    }
 }
