@@ -1,6 +1,5 @@
 package dev.sonnyjon.recipespringmongodb.services;
 
-import dev.sonnyjon.recipespringmongodb.exceptions.NotFoundException;
 import dev.sonnyjon.recipespringmongodb.model.Ingredient;
 import dev.sonnyjon.recipespringmongodb.model.Recipe;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,15 +29,12 @@ class IngredientServiceIT
     @BeforeEach
     void setUp()
     {
-        testRecipe = recipeService.getRecipes()
-                                    .stream()
-                                    .findFirst()
-                                    .orElseThrow(NotFoundException::new);
-
-        testIngredient = testRecipe.getIngredients()
-                                    .stream()
-                                    .findFirst()
-                                    .orElseThrow(NotFoundException::new);
+//        testRecipe = recipeService.getRecipes().collectList().;
+//
+//        testIngredient = testRecipe.getIngredients()
+//                                    .stream()
+//                                    .findFirst()
+//                                    .orElseThrow(NotFoundException::new);
     }
 
 //    @Test

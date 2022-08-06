@@ -48,7 +48,7 @@ class ImageServiceIT
 
         // when
         imageService.saveImageFile(RECIPE_ID, mockFile);
-        Recipe actualRecipe = recipeService.findById( RECIPE_ID );
+        Recipe actualRecipe = recipeService.findById( RECIPE_ID ).block();
 
         // then
         assertEquals(expectedRecipe.getId(), actualRecipe.getId());
@@ -60,8 +60,8 @@ class ImageServiceIT
         RecipeDto recipe = new RecipeDto();
         recipe.setId( RECIPE_ID );
         recipe.setDescription( RECIPE_DESC );
-        recipeService.saveRecipe(recipe);
+        recipeService.saveRecipe( recipe ).block();
 
-        return recipeService.findById( RECIPE_ID );
+        return recipeService.findById( RECIPE_ID ).block();
     }
 }

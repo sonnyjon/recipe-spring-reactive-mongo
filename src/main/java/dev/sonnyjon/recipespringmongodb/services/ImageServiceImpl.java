@@ -2,7 +2,7 @@ package dev.sonnyjon.recipespringmongodb.services;
 
 import dev.sonnyjon.recipespringmongodb.exceptions.NotFoundException;
 import dev.sonnyjon.recipespringmongodb.model.Recipe;
-import dev.sonnyjon.recipespringmongodb.repositories.RecipeRepository;
+import dev.sonnyjon.recipespringmongodb.repositories.reactifve.RecipeReactiveRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,11 +17,11 @@ import java.io.IOException;
 @Service
 public class ImageServiceImpl implements ImageService
 {
-    private final RecipeRepository recipeRepository;
+    private final RecipeReactiveRepository recipeReactiveRepository;
 
-    public ImageServiceImpl(RecipeRepository recipeRepository)
+    public ImageServiceImpl(RecipeReactiveRepository recipeReactiveRepository)
     {
-        this.recipeRepository = recipeRepository;
+        this.recipeReactiveRepository = recipeReactiveRepository;
     }
 
     @Override
@@ -29,7 +29,13 @@ public class ImageServiceImpl implements ImageService
     public void saveImageFile(String recipeId, MultipartFile file)
     {
         try {
-            Recipe recipe = recipeRepository.findById(recipeId).orElseThrow(NotFoundException::new);
+            Recipe recipe = recipeReactiveRepository
+                                    .findById( recipeId )
+                                    .doOnError(err -> {
+                                        throw new NotFoundException("Recipe not found: " + recipeId);
+                                    })
+                                    .block();
+
             Byte[] byteObjects = new Byte[file.getBytes().length];
             int i = 0;
 
@@ -39,7 +45,7 @@ public class ImageServiceImpl implements ImageService
             }
 
             recipe.setImage(byteObjects);
-            recipeRepository.save(recipe);
+            recipeReactiveRepository.save( recipe ).block();
         }
         catch (IOException e)
         {

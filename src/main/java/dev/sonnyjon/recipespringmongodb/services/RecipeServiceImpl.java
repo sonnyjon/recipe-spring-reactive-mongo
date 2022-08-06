@@ -4,14 +4,11 @@ import dev.sonnyjon.recipespringmongodb.converters.RecipeConverter;
 import dev.sonnyjon.recipespringmongodb.dto.RecipeDto;
 import dev.sonnyjon.recipespringmongodb.exceptions.NotFoundException;
 import dev.sonnyjon.recipespringmongodb.model.Recipe;
-import dev.sonnyjon.recipespringmongodb.repositories.RecipeRepository;
+import dev.sonnyjon.recipespringmongodb.repositories.reactifve.RecipeReactiveRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Created by Sonny on 7/12/2022.
@@ -20,55 +17,54 @@ import java.util.Set;
 @Service
 public class RecipeServiceImpl implements RecipeService
 {
-    private final RecipeRepository recipeRepository;
+    private final RecipeReactiveRepository recipeReactiveRepository;
     private final RecipeConverter converter = new RecipeConverter();
 
-    public RecipeServiceImpl(RecipeRepository recipeRepository)
+    public RecipeServiceImpl(RecipeReactiveRepository recipeReactiveRepository)
     {
-        this.recipeRepository = recipeRepository;
+        this.recipeReactiveRepository = recipeReactiveRepository;
     }
 
     @Override
-    public Set<Recipe> getRecipes()
+    public Flux<Recipe> getRecipes()
     {
         log.debug("I'm in the service");
-
-        Set<Recipe> recipeSet = new HashSet<>();
-        recipeRepository.findAll().iterator().forEachRemaining(recipeSet::add);
-        return recipeSet;
+        return recipeReactiveRepository.findAll();
     }
 
     @Override
-    public Recipe findById(String id)
+    public Mono<Recipe> findById(String id)
     {
-        Optional<Recipe> recipeOptional = recipeRepository.findById(id);
-
-        if (recipeOptional.isEmpty()) throw new NotFoundException("Recipe Not Found. For ID value: " + id );
-
-        return recipeOptional.get();
+        return recipeReactiveRepository.findById( id );
     }
 
     @Override
-    public RecipeDto findDtoById(String id)
+    public Mono<RecipeDto> findDtoById(String id)
     {
-        return converter.convertEntity(findById(id));
+        return findById( id )
+                .map(converter::convertEntity)
+                .doOnError(err -> {
+                   throw new NotFoundException("Recipe not found: " + id);
+                });
     }
 
     @Override
-    @Transactional
-    public RecipeDto saveRecipe(RecipeDto dto)
+    public Mono<RecipeDto> saveRecipe(RecipeDto dto)
     {
-        Recipe detachedRecipe = converter.convertDto(dto);
-        Recipe savedRecipe = recipeRepository.save(detachedRecipe);
-        log.debug("Saved RecipeId:" + savedRecipe.getId());
+        Recipe detachedRecipe = converter.convertDto( dto );
 
-        return converter.convertEntity(savedRecipe);
+        return recipeReactiveRepository
+                    .save( detachedRecipe )
+                    .map(converter::convertEntity);
     }
 
     @Override
-    @Transactional
-    public void deleteById(String idToDelete)
+    public Mono<Void> deleteById(String idToDelete)
     {
-        recipeRepository.deleteById(idToDelete);
+        return recipeReactiveRepository
+                    .deleteById( idToDelete )
+                    .doOnError(err -> {
+                        throw new NotFoundException("Recipe not found: " + idToDelete);
+                    });
     }
 }

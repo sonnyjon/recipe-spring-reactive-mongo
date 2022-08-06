@@ -5,10 +5,9 @@ import dev.sonnyjon.recipespringmongodb.dto.IngredientDto;
 import dev.sonnyjon.recipespringmongodb.exceptions.NotFoundException;
 import dev.sonnyjon.recipespringmongodb.model.Ingredient;
 import dev.sonnyjon.recipespringmongodb.model.Recipe;
-import dev.sonnyjon.recipespringmongodb.repositories.RecipeRepository;
+import dev.sonnyjon.recipespringmongodb.repositories.reactifve.RecipeReactiveRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
 /**
@@ -18,12 +17,12 @@ import reactor.core.publisher.Mono;
 @Service("ingredientService")
 public class IngredientServiceMongoImpl implements IngredientService
 {
-    private final RecipeRepository recipeRepository;
+    private final RecipeReactiveRepository recipeReactiveRepository;
     private final IngredientConverter converter = new IngredientConverter();
 
-    public IngredientServiceMongoImpl(RecipeRepository recipeRepository)
+    public IngredientServiceMongoImpl(RecipeReactiveRepository recipeReactiveRepository)
     {
-        this.recipeRepository = recipeRepository;
+        this.recipeReactiveRepository = recipeReactiveRepository;
     }
 
     @Override
@@ -35,7 +34,6 @@ public class IngredientServiceMongoImpl implements IngredientService
     }
 
     @Override
-    @Transactional
     public Mono<IngredientDto> saveIngredient(String recipeId, IngredientDto dto)
     {
         Recipe recipe = findRecipe( recipeId );
@@ -53,20 +51,19 @@ public class IngredientServiceMongoImpl implements IngredientService
             recipe.addIngredient( toBeSaved );
         }
 
-        Recipe savedRecipe = recipeRepository.save( recipe );
+        Recipe savedRecipe = recipeReactiveRepository.save( recipe ).block();
         IngredientDto ingredientDto = converter.convertEntity( findIngredientInRecipe(dto.getId(), savedRecipe) );
         return Mono.just( ingredientDto );
     }
 
     @Override
-    @Transactional
     public Mono<Void> removeIngredient(String recipeId, String ingredientId)
     {
         Recipe recipe = findRecipe( recipeId );
         Ingredient ingredient = findIngredientInRecipe( ingredientId, recipe );
         recipe.getIngredients().remove( ingredient );
 
-        recipeRepository.save( recipe );
+        recipeReactiveRepository.save( recipe ).block();
 
         return Mono.just("removeIngredient").then();
     }
@@ -74,10 +71,12 @@ public class IngredientServiceMongoImpl implements IngredientService
     //==================================================================================================================
     private Recipe findRecipe(String recipeId)
     {
-        return recipeRepository.findById( recipeId )
-                                .orElseThrow(
-                                    () -> new NotFoundException("Recipe not found. ID: " + recipeId)
-                                );
+        return recipeReactiveRepository
+                    .findById( recipeId )
+                    .doOnError(err -> {
+                        throw new NotFoundException("Recipe not found: " + recipeId);
+                    })
+                    .block();
     }
 
     private Ingredient findIngredientInRecipe(String ingredientId, Recipe recipe)

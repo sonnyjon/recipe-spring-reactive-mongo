@@ -65,7 +65,7 @@ class IndexControllerTest
         expectedRecipes.add(recipe1);
         expectedRecipes.add(recipe2);
 
-        when(recipeService.getRecipes()).thenReturn(expectedRecipes);
+//        when(recipeService.getRecipes()).thenReturn(expectedRecipes);
 
         //when
         mockMvc.perform(get("/"))

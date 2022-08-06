@@ -4,7 +4,7 @@ import dev.sonnyjon.recipespringmongodb.converters.RecipeConverter;
 import dev.sonnyjon.recipespringmongodb.dto.RecipeDto;
 import dev.sonnyjon.recipespringmongodb.exceptions.NotFoundException;
 import dev.sonnyjon.recipespringmongodb.model.Recipe;
-import dev.sonnyjon.recipespringmongodb.repositories.RecipeRepository;
+import dev.sonnyjon.recipespringmongodb.repositories.reactifve.RecipeReactiveRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,11 +13,16 @@ import org.junit.jupiter.api.function.Executable;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
@@ -27,7 +32,7 @@ import static org.mockito.Mockito.*;
 class RecipeServiceImplTest
 {
     @Mock
-    RecipeRepository recipeRepository;
+    RecipeReactiveRepository recipeReactiveRepository;
 
     RecipeConverter converter;
     RecipeService recipeService;
@@ -37,7 +42,7 @@ class RecipeServiceImplTest
     void setUp()
     {
         mocks = MockitoAnnotations.openMocks(this);
-        recipeService = new RecipeServiceImpl(recipeRepository);
+        recipeService = new RecipeServiceImpl( recipeReactiveRepository );
         converter = new RecipeConverter();
     }
 
@@ -48,108 +53,114 @@ class RecipeServiceImplTest
     }
 
     @Test
-    void getRecipes_shouldReturn_allRecipes()
+    void whenGetRecipes_thenFindAll()
     {
         // given
-        List<Recipe> recipes = new ArrayList<>();
+        List<Recipe> expectedRecipes = new ArrayList<>();
         Recipe recipe1 = new Recipe();
         recipe1.setId("RECIPE-1");
-        recipes.add(recipe1);
+        expectedRecipes.add( recipe1 );
 
         Recipe recipe2 = new Recipe();
         recipe2.setId("RECIPE-2");
-        recipes.add(recipe2);
+        expectedRecipes.add( recipe2 );
 
         Recipe recipe3 = new Recipe();
         recipe3.setId("RECIPE-3");
-        recipes.add(recipe3);
+        expectedRecipes.add( recipe3 );
 
-        Set<Recipe> expectedRecipes = new HashSet<>(recipes);
-
-        when(recipeRepository.findAll()).thenReturn(recipes);
+        Flux<Recipe> recipeFlux = Flux.just( recipe1, recipe2, recipe3 );
 
         // when
-        Set<Recipe> actualRecipes = recipeService.getRecipes();
+        when(recipeReactiveRepository.findAll()).thenReturn( recipeFlux );
+        List<Recipe> actualRecipes = recipeService.getRecipes().collectList().block();
 
         // then
-        assertEquals(expectedRecipes, actualRecipes);
+        assertEquals( expectedRecipes, actualRecipes );
     }
 
     @Test
-    void findById_shouldReturnRecipe_whenFound()
+    void givenRecipeId_whenFindById_thenFindRecipe()
     {
         // given
-        Recipe expected = new Recipe();
-        expected.setId("RECIPE-1");
-        Optional<Recipe> optional = Optional.of(expected);
+        final String ID = "RECIPE-1";
 
-        when(recipeRepository.findById(anyString())).thenReturn(optional);
+        Recipe expectedRecipe = new Recipe();
+        expectedRecipe.setId( ID );
+        Mono<Recipe> recipeMono = Mono.just( expectedRecipe );
 
         // when
-        Recipe actual = recipeService.findById("RECIPE-1");
+        when(recipeReactiveRepository.findById(anyString())).thenReturn( recipeMono );
+        Recipe actualRecipe = recipeService.findById( ID ).block();
 
         // then
-        assertEquals(expected, actual);
+        assertEquals(expectedRecipe, actualRecipe);
     }
 
     @Test
-    void findById_shouldThrowException_whenNotFound()
+    void givenBadId_whenFindById_thenThrowException()
     {
         // given
-        when(recipeRepository.findById(anyString())).thenThrow(NotFoundException.class);
+        final String ID = "RECIPE-1";
 
         // when
-        Executable executable = () -> recipeService.findById("RECIPE-1");
+        when(recipeReactiveRepository.findById(anyString())).thenThrow( NotFoundException.class );
+        Executable executable = () -> recipeService.findById( ID ).block();
 
         // then
-        assertThrows(NotFoundException.class, executable);
+        assertThrows( NotFoundException.class, executable );
     }
 
     @Test
-    void findDtoById_shouldReturnDTO_whenFound()
+    void givenRecipeId_whenFindDtoById_thenFindRecipe_andReturnDto()
     {
         // given
+        final String ID = "RECIPE-1";
+
         Recipe recipe = new Recipe();
-        recipe.setId("RECIPE-1");
-        Optional<Recipe> optional = Optional.of(recipe);
-        RecipeDto expectedDto = converter.convertEntity(recipe);
-
-        when(recipeRepository.findById(anyString())).thenReturn(optional);
+        recipe.setId( ID );
+        Mono<Recipe> recipeMono = Mono.just( recipe );
+        RecipeDto expectedDto = converter.convertEntity( recipe );
 
         // when
-        RecipeDto actualDto = recipeService.findDtoById("RECIPE-1");
+        when(recipeReactiveRepository.findById(anyString())).thenReturn( recipeMono );
+        RecipeDto actualDto = recipeService.findDtoById( ID ).block();
 
         // then
         assertEquals(expectedDto.getId(), actualDto.getId());
     }
 
     @Test
-    void findDtoById_shouldThrowException_whenNotFound()
+    void givenBadRecipeId_whenFindDtoById_thenThrowException()
     {
         // given
-        when(recipeRepository.findById(anyString())).thenThrow(NotFoundException.class);
+        final String ID = "RECIPE-1";
 
         // when
-        Executable executable = () -> recipeService.findDtoById("RECIPE-1");
+        when(recipeReactiveRepository.findById(anyString())).thenThrow( NotFoundException.class );
+        Executable executable = () -> recipeService.findDtoById( ID ).block();
 
         // then
         assertThrows(NotFoundException.class, executable);
     }
 
     @Test
-    void saveRecipe_shouldReturn_equivDTO_Object()
+    void givenRecipeDto_whenSaveRecipe_thenSave()
     {
         // given
-        Recipe recipe = new Recipe();
-        recipe.setId("RECIPE-1");
-        recipe.setDescription("RECIPE_DESC");
-        Optional<Recipe> optional = Optional.of(recipe);
-        RecipeDto expectedDto = converter.convertEntity(recipe);
+        final String ID = "RECIPE-1";
+        final String DESC = "RECIPE-DESC";
 
-        when(recipeRepository.save(any())).thenReturn(recipe);
+        Recipe recipe = new Recipe();
+        recipe.setId( ID );
+        recipe.setDescription( DESC );
+
+        Mono<Recipe> recipeMono = Mono.just( recipe );
+        RecipeDto expectedDto = converter.convertEntity( recipe );
 
         // when
-        RecipeDto actualDto = recipeService.saveRecipe(expectedDto);
+        when(recipeReactiveRepository.save(any())).thenReturn( recipeMono );
+        RecipeDto actualDto = recipeService.saveRecipe( expectedDto ).block();
 
         // then
         assertEquals(expectedDto.getId(), actualDto.getId());
@@ -157,15 +168,16 @@ class RecipeServiceImplTest
     }
 
     @Test
-    void deleteById()
+    void givenRecipeId_whenDeleteById_thenDeleteRecipe()
     {
         // given
-        doNothing().when(recipeRepository).deleteById(anyString());
+        final String ID = "RECIPE-1";
 
         // when
-        recipeService.deleteById("RECIPE-1");
+        when(recipeReactiveRepository.deleteById(anyString())).thenReturn( Mono.empty() );
+        recipeService.deleteById( ID ).block();
 
         // then
-        verify(recipeRepository, times(1)).deleteById(anyString());
+        verify(recipeReactiveRepository, times(1)).deleteById(anyString());
     }
 }

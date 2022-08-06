@@ -1,7 +1,7 @@
 package dev.sonnyjon.recipespringmongodb.services;
 
 import dev.sonnyjon.recipespringmongodb.model.Recipe;
-import dev.sonnyjon.recipespringmongodb.repositories.RecipeRepository;
+import dev.sonnyjon.recipespringmongodb.repositories.reactifve.RecipeReactiveRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,8 +12,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -28,7 +27,7 @@ class ImageServiceImplTest
     public static final String RECIPE_ID = "RECIPE-1";
 
     @Mock
-    RecipeRepository recipeRepository;
+    RecipeReactiveRepository recipeReactiveRepository;
 
     ImageService imageService;
     AutoCloseable mocks;
@@ -37,7 +36,7 @@ class ImageServiceImplTest
     void setUp()
     {
         mocks = MockitoAnnotations.openMocks(this);
-        imageService = new ImageServiceImpl(recipeRepository);
+        imageService = new ImageServiceImpl( recipeReactiveRepository );
     }
 
     @AfterEach
@@ -51,21 +50,23 @@ class ImageServiceImplTest
     @Test
     void test_saveImageFile() throws Exception
     {
+        // given
         MultipartFile multipartFile = new MockMultipartFile("imagefile", "testing.txt", "text/plain",
                 "Spring Framework Guru".getBytes());
 
         Recipe recipe = new Recipe();
-        recipe.setId(RECIPE_ID);
-        Optional<Recipe> recipeOptional = Optional.of(recipe);
+        recipe.setId( RECIPE_ID );
 
-        when(recipeRepository.findById(anyString())).thenReturn(recipeOptional);
+        // when
+        when(recipeReactiveRepository.findById(anyString())).thenReturn(Mono.just( recipe ));
+        when(recipeReactiveRepository.save(any(Recipe.class))).thenReturn(Mono.just( recipe ));
 
-        ArgumentCaptor<Recipe> argumentCaptor = ArgumentCaptor.forClass(Recipe.class);
+        ArgumentCaptor<Recipe> argumentCaptor = ArgumentCaptor.forClass( Recipe.class );
+        imageService.saveImageFile( RECIPE_ID, multipartFile );
 
-        imageService.saveImageFile(RECIPE_ID, multipartFile);
-
-        verify(recipeRepository, times(1)).save(argumentCaptor.capture());
+        // then
+        verify(recipeReactiveRepository, times(1)).save( argumentCaptor.capture() );
         Recipe savedRecipe = argumentCaptor.getValue();
-        assertEquals(multipartFile.getBytes().length, savedRecipe.getImage().length);
+        assertEquals( multipartFile.getBytes().length, savedRecipe.getImage().length );
     }
 }

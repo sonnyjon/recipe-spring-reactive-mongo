@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
@@ -37,8 +38,8 @@ public class RecipeControllerTest
     public void setUp() throws Exception
     {
         mocks = MockitoAnnotations.openMocks(this);
-        controller = new RecipeController(recipeService);
-        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+        controller = new RecipeController( recipeService );
+        mockMvc = MockMvcBuilders.standaloneSetup( controller )
                                 .setControllerAdvice(new ControllerExceptionHandler())
                                 .build();
     }
@@ -50,7 +51,7 @@ public class RecipeControllerTest
     }
 
     @Test
-    public void showById_shouldReturnShowUri_whenRecipeFound() throws Exception
+    void givenRecipeId_whenShowById_thenShowRecipeView() throws Exception
     {
         final String RECIPE_ID = "RECIPE-1";
         final String TEST_URI = String.format("/recipe/%s/show", RECIPE_ID);
@@ -60,9 +61,9 @@ public class RecipeControllerTest
         RecipeDto recipe = new RecipeDto();
         recipe.setId( RECIPE_ID );
 
-        when(recipeService.findDtoById(anyString())).thenReturn(recipe);
-
         // when, then
+        when(recipeService.findDtoById(anyString())).thenReturn(Mono.just( recipe ));
+
         mockMvc.perform(get( TEST_URI ))
                 .andExpect(status().isOk())
                 .andExpect(model().attributeExists("recipe"))
@@ -72,18 +73,20 @@ public class RecipeControllerTest
     }
 
     @Test
-    public void showById_shouldThrowException_whenRecipeNotFound() throws Exception
+    void givenBadRecipeId_whenShowById_thenThrowException() throws Exception
     {
         final String RECIPE_ID = "RECIPE-1";
         final String TEST_URI = String.format("/recipe/%s/show", RECIPE_ID);
 
         // given
-        when(recipeService.findDtoById(anyString())).thenThrow(NotFoundException.class);
+        when(recipeService.findDtoById(anyString())).thenThrow( NotFoundException.class );
 
         // when
         mockMvc.perform(get( TEST_URI ))
-                .andExpect(status().isNotFound())
-                .andExpect(result -> assertTrue(result.getResolvedException() instanceof NotFoundException))
+                .andExpect( status().isNotFound() )
+                .andExpect(
+                    result -> assertTrue(result.getResolvedException() instanceof NotFoundException)
+                )
                 .andExpect(forwardedUrl( "404error" ));
 
         // then
@@ -91,20 +94,20 @@ public class RecipeControllerTest
     }
 
     @Test
-    public void newRecipe_shouldReturnFormUri() throws Exception
+    void whenNewRecipe_thenRecipeFormView() throws Exception
     {
         final String TEST_URI = "/recipe/new";
         final String EXPECTED_RETURN = "recipe/recipeform";
 
         // when, then
         mockMvc.perform(get( TEST_URI ))
-                .andExpect(status().isOk())
+                .andExpect( status().isOk() )
                 .andExpect(model().attributeExists("recipe"))
                 .andExpect(forwardedUrl( EXPECTED_RETURN ));
     }
 
     @Test
-    public void updateRecipe_shouldReturnFormUri_whenRecipeFound() throws Exception
+    void givenRecipeId_whenUpdateRecipe_thenRecipeFormView() throws Exception
     {
         final String RECIPE_ID = "RECIPE-1";
         final String TEST_URI = String.format("/recipe/%s/update", RECIPE_ID);
@@ -114,11 +117,11 @@ public class RecipeControllerTest
         RecipeDto recipe = new RecipeDto();
         recipe.setId( RECIPE_ID );
 
-        when(recipeService.findDtoById(anyString())).thenReturn(recipe);
-
         // when, then
+        when(recipeService.findDtoById(anyString())).thenReturn(Mono.just( recipe ));
+
         mockMvc.perform(get( TEST_URI ))
-                .andExpect(status().isOk())
+                .andExpect( status().isOk() )
                 .andExpect(model().attributeExists("recipe"))
                 .andExpect(forwardedUrl( EXPECTED_RETURN ));
 
@@ -126,7 +129,7 @@ public class RecipeControllerTest
     }
 
     @Test
-    public void updateRecipe_shouldThrowException_whenRecipeNotFound() throws Exception
+    void givenBadRecipeId_whenUpdateRecipe_thenThrowException() throws Exception
     {
         final String RECIPE_ID = "RECIPE-1";
         final String TEST_URI = String.format("/recipe/%s/update", RECIPE_ID);
@@ -136,15 +139,17 @@ public class RecipeControllerTest
 
         // when, then
         mockMvc.perform(get( TEST_URI ))
-                .andExpect(status().isNotFound())
-                .andExpect(result -> assertTrue(result.getResolvedException() instanceof NotFoundException))
+                .andExpect( status().isNotFound() )
+                .andExpect(
+                    result -> assertTrue(result.getResolvedException() instanceof NotFoundException)
+                )
                 .andExpect(forwardedUrl( "404error" ));
 
         verify(recipeService, times(1)).findDtoById(anyString());
     }
 
     @Test
-    public void saveOrUpdate_shouldReturnShowUri_afterSave() throws Exception
+    void givenRecipeDto_andValidInputs_whenSaveOrUpdate_thenSave_andShowRecipeView() throws Exception
     {
         final String RECIPE_ID = "RECIPE-1";
         final String TEST_URI = "/recipe";
@@ -154,51 +159,28 @@ public class RecipeControllerTest
         RecipeDto expectedRecipe = new RecipeDto();
         expectedRecipe.setId( RECIPE_ID );
 
-        when(recipeService.saveRecipe(any())).thenReturn(expectedRecipe);
-
         // when, then
+        when(recipeService.saveRecipe(any())).thenReturn(Mono.just( expectedRecipe ));
+
         mockMvc.perform(post( TEST_URI )
                         .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                         .param("id", "")
                         .param("description", "My new recipe")
                         .param("descriptions", "This is how you do it")
                 )
-                .andExpect(status().is3xxRedirection())
+                .andExpect( status().is3xxRedirection() )
                 .andExpect(redirectedUrl( EXPECTED_RETURN ));
-
-        // then
     }
 
-    // TODO Form validation tests
-
-//    @Test
-//    public void testPostNewRecipeFormValidationFail() throws Exception
-//    {
-//        RecipeCommand command = new RecipeCommand();
-//        command.setId("2");
-//
-//        when(recipeService.saveRecipeCommand(any())).thenReturn(command);
-//
-//        mockMvc.perform(post("/recipe")
-//                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-//                        .param("id", "")
-//                        .param("cookTime", "3000")
-//
-//                )
-//                .andExpect(status().isOk())
-//                .andExpect(model().attributeExists("recipe"))
-//                .andExpect(view().name("recipe/recipeform"));
-//    }
-
     @Test
-    public void deleteById_shouldRedirectToRoot_afterDelete() throws Exception
+    void givenRecipeId_whenDeleteById_thenDelete_andRedirectToRoot() throws Exception
     {
         final String RECIPE_ID = "RECIPE-1";
         final String TEST_URI = String.format("/recipe/%s/delete", RECIPE_ID);
         final String EXPECTED_RETURN = "/";
 
         // given
-        doNothing().when(recipeService).deleteById(anyString());
+        when(recipeService.deleteById(anyString())).thenReturn( Mono.empty() );
 
         // when, then
         mockMvc.perform(get( TEST_URI ))

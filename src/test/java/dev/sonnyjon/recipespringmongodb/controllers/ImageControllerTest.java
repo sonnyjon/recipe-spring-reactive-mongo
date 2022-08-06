@@ -15,6 +15,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import reactor.core.publisher.Mono;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,7 +55,7 @@ class ImageControllerTest
     }
 
     @Test
-    public void showForm_shouldReturnFormUri_whenRecipeFound() throws Exception
+    void givenRecipeId_whenShowUploadForm_thenImageUploadView() throws Exception
     {
         final String RECIPE_ID = "RECIPE-1";
         final String TEST_URI = String.format("/recipe/%s/image", RECIPE_ID);
@@ -64,11 +65,11 @@ class ImageControllerTest
         RecipeDto recipeDto = new RecipeDto();
         recipeDto.setId( RECIPE_ID );
 
-        when(recipeService.findDtoById(anyString())).thenReturn(recipeDto);
-
         // when
+        when(recipeService.findDtoById(anyString())).thenReturn(Mono.just( recipeDto ));
+
         mockMvc.perform(get( TEST_URI ))
-                .andExpect(status().isOk())
+                .andExpect( status().isOk() )
                 .andExpect(model().attributeExists("recipe"))
                 .andExpect(forwardedUrl( EXPECTED_RETURN ));
 
@@ -77,25 +78,26 @@ class ImageControllerTest
     }
 
     @Test
-    public void showForm_shouldThrowException_whenRecipeNotFound() throws Exception
+    void givenBadRecipeId_whenShowUploadForm_thenThrowException() throws Exception
     {
         final String RECIPE_ID = "RECIPE-1";
         final String TEST_URI = String.format("/recipe/%s/image", RECIPE_ID);
 
-        // given
-        when(recipeService.findDtoById(anyString())).thenThrow(NotFoundException.class);
-
         // when
+        when(recipeService.findDtoById(anyString())).thenThrow( NotFoundException.class );
+
         mockMvc.perform(get( TEST_URI ))
-                .andExpect(status().isNotFound())
-                .andExpect(result -> assertTrue(result.getResolvedException() instanceof NotFoundException));
+                .andExpect( status().isNotFound() )
+                .andExpect(
+                    result -> assertTrue(result.getResolvedException() instanceof NotFoundException)
+                );
 
         // then
         verify(recipeService, times(1)).findDtoById(anyString());
     }
 
     @Test
-    public void handleImage_shouldRedirectToShow_whenRecipeFound() throws Exception
+    void givenRecipeId_whenHandleImagePost_thenSaveImage_andThenShowRecipeView() throws Exception
     {
         final String RECIPE_ID = "RECIPE-1";
         final String EXPECTED_URI = String.format("/recipe/%s/show", RECIPE_ID);
@@ -107,7 +109,7 @@ class ImageControllerTest
 
         // when
         mockMvc.perform(multipart("/recipe/{id}/image", RECIPE_ID).file(multipartFile))
-                .andExpect(status().is3xxRedirection())
+                .andExpect( status().is3xxRedirection() )
                 .andExpect(header().string("Location", EXPECTED_URI));
 
         // then
@@ -115,7 +117,7 @@ class ImageControllerTest
     }
 
     @Test
-    public void handleImage_shouldThrowException_whenRecipeNotFound() throws Exception
+    void givenBadRecipeId_whenHandleImagePost_thenThrowException() throws Exception
     {
         final String RECIPE_ID = "RECIPE-1";
 
@@ -124,11 +126,11 @@ class ImageControllerTest
                 new MockMultipartFile("imagefile", "testing.txt", "text/plain",
                         "Spring Framework Guru".getBytes());
 
-        doThrow(NotFoundException.class).when(imageService).saveImageFile(anyString(), any());
-
         // when
-        mockMvc.perform(multipart("/recipe/{id}/image", RECIPE_ID).file(multipartFile))
-                .andExpect(status().isNotFound())
+        doThrow( NotFoundException.class ).when(imageService).saveImageFile(anyString(), any());
+
+        mockMvc.perform(multipart("/recipe/{id}/image", RECIPE_ID).file( multipartFile ))
+                .andExpect( status().isNotFound() )
                 .andExpect(result -> assertTrue(result.getResolvedException() instanceof NotFoundException));
 
         // then
@@ -136,7 +138,7 @@ class ImageControllerTest
     }
 
     @Test
-    public void renderImage_shouldStream_ImageBytes() throws Exception
+    void givenRecipeId_whenRenderImageFromDb_thenStreamImageBytes() throws Exception
     {
         final String RECIPE_ID = "RECIPE-1";
         final String TEST_URI = String.format("/recipe/%s/recipeimage", RECIPE_ID);
@@ -155,9 +157,8 @@ class ImageControllerTest
         recipeDto.setId( RECIPE_ID );
         recipeDto.setImage(bytesBoxed);
 
-        when(recipeService.findDtoById(anyString())).thenReturn(recipeDto);
-
         // when
+        when(recipeService.findDtoById(anyString())).thenReturn(Mono.just( recipeDto ));
         MockHttpServletResponse response = mockMvc.perform(get( TEST_URI ))
                                                     .andExpect(status().isOk())
                                                     .andReturn().getResponse();

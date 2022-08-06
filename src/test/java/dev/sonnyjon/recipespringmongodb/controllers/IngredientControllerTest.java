@@ -74,7 +74,7 @@ class IngredientControllerTest
         recipe.setId( RECIPE_ID );
 
         // when, then
-        when(recipeService.findDtoById( RECIPE_ID )).thenReturn( recipe );
+        when(recipeService.findDtoById( RECIPE_ID )).thenReturn(Mono.just( recipe ));
 
         mockMvc.perform(get( TEST_URI ))
                 .andExpect(status().isOk())
@@ -166,7 +166,7 @@ class IngredientControllerTest
         Flux<UnitOfMeasureDto> uoms = Flux.just( new UnitOfMeasureDto() );
 
         // when, then
-        when(recipeService.findDtoById( RECIPE_ID )).thenReturn( testRecipe );
+//        when(recipeService.findDtoById( RECIPE_ID )).thenReturn( testRecipe );
         when(unitOfMeasureService.listAllUoms()).thenReturn( uoms );
 
         mockMvc.perform(get( TEST_URI ))
